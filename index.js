@@ -10,8 +10,6 @@ const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster
 
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 
-console.log(uri);
-
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({extended: true}));
@@ -21,6 +19,7 @@ app.use(express.urlencoded({extended: true}));
 client.connect(err => {
   const serviceCollection = client.db("Kiddy").collection("allServices");
   const orderCollection = client.db("Kiddy").collection("allOrders");
+  const reviewCollection = client.db("Kiddy").collection("allReview");
   
   app.post('/addService', (req, res) =>{
       const newService = req.body;
@@ -30,6 +29,25 @@ client.connect(err => {
           res.send(result.insertedCount > 0)
       })
   });
+
+  // add review
+  app.post('/addReview', (req, res) =>{
+      const newReview = req.body;
+      reviewCollection.insertOne(newReview)
+      .then(result =>{
+         // console.log(result.insertedCount)
+          res.send(result.insertedCount > 0)
+      })
+  });
+
+ //call reviews on UI
+ app.get('/reviews', (req, res) =>{
+  reviewCollection.find()
+  .toArray((err, document) =>{
+    res.send(document)
+  })
+})
+
 
  //call services on UI 
  app.get('/packages', (req, res) =>{
@@ -44,7 +62,7 @@ app.post('/addOrder', (req, res) =>{
   orderCollection.insertOne(req.body)
   .then(result =>{
     res.send(result.insertedCount > 0);
-    console.log(result.insertedCount)
+    //console.log(result.insertedCount)
   })
 })
 
@@ -55,7 +73,43 @@ app.get('/singleService/:id', (req, res) =>{
   })
 })
 
+ //call orders on UI
+ app.get('/bookingList/:email', (req, res) =>{
+  console.log(req.params.email);
+  orderCollection.find({email: req.params.email})
+  .toArray((err, documents) =>{
+    res.send(documents)
+  })
+})
+
+  //call products on UI 
+  app.get('/availableServices', (req, res) =>{
+    serviceCollection.find()
+    .toArray((err, services) =>{
+      res.send(services)
+    })
+  })
+
+  app.delete('/delete/:id',(req, res)=>{
+    const id =req.params.id;
+    serviceCollection.deleteOne({_id: ObjectId(id)})
+    .then(result =>{
+      res.send(result.deletedCount > 0)
+      
+    })
+  
+  })
+
+
+
+
+
+
 });
+
+
+
+
 
 app.get('/', (req, res) => {
   res.send('Hello World!')
